@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meal Routine & ICA Maxi Arninge Grocery Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            nordic: {
+              50: '#F9FAFB',
+              100: '#F3F4F6',
+              200: '#E5E7EB',
+              300: '#D1D5DB',
+              600: '#4B5563',
+              700: '#374151',
+              800: '#1F2937',
+              900: '#111827',
+              sage: '#2D6A4F',
+              sageLight: '#E8F5E9'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .tab-active { border-bottom: 2px solid #2D6A4F; color: #111827; font-weight: 600; }
+    .tab-inactive { color: #6B7280; font-weight: 500; }
+  </style>
+</head>
+<body class="bg-nordic-50 text-nordic-900 min-h-screen flex flex-col antialiased">
+
+  <!-- Navigation / Header -->
+  <header class="bg-white border-b border-nordic-200 sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-nordic-sage"></span>
+          <h1 class="text-xl font-semibold tracking-tight text-nordic-900">Arninge Routine & Assembly</h1>
+        </div>
+        <p class="text-xs text-nordic-600 mt-0.5">High-Protein • 100% No-Stove/Oven Assembly • ICA Maxi Arninge</p>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button id="openGithubModal" class="text-xs bg-nordic-100 hover:bg-nordic-200 text-nordic-800 px-3 py-1.5 rounded border border-nordic-300 font-medium transition-colors">
+          Host on GitHub
+        </button>
+      </div>
+    </div>
+    <!-- Navigation Tabs -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 flex gap-8 text-sm">
+      <button id="tabBtnMeals" class="py-3 tab-active transition-colors">Weekly Plan</button>
+      <button id="tabBtnShop" class="py-3 tab-inactive transition-colors">ICA Maxi Checklist</button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="flex-grow max-w-5xl w-full mx-auto px-4 sm:px-6 py-6">
+
+    <!-- VIEW 1: MEAL SCHEDULE -->
+    <section id="viewMeals" class="space-y-6">
+      <div class="bg-white rounded-lg border border-nordic-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-semibold text-nordic-900">Assembly Routine</h2>
+          <p class="text-xs text-nordic-600 mt-0.5">Click any meal to view ingredients, visual plating reference, and step-by-step assembly.</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs bg-nordic-50 px-3 py-2 rounded border border-nordic-200 text-nordic-700">
+          <div><span class="font-semibold text-nordic-900">Breakfast:</span> ~270 kcal</div>
+          <span class="text-nordic-300">•</span>
+          <div><span class="font-semibold text-nordic-900">Lunch:</span> ~390 kcal</div>
+          <span class="text-nordic-300">•</span>
+          <div><span class="font-semibold text-nordic-900">Dinner:</span> ~330 kcal</div>
+        </div>
+      </div>
+
+      <!-- Weekly Schedule Grid -->
+      <div id="mealsGrid" class="space-y-4"></div>
+    </section>
+
+    <!-- VIEW 2: SHOPPING CHECKLIST -->
+    <section id="viewShop" class="hidden space-y-6">
+      <!-- Store & Budget Header -->
+      <div class="bg-white rounded-lg border border-nordic-200 p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <span class="text-xs uppercase tracking-wider font-semibold text-nordic-600">Store Destination</span>
+            <h2 class="text-lg font-bold text-nordic-900">ICA Maxi Stormarknad Arninge</h2>
+            <p class="text-xs text-nordic-600">Saluvägen 15, Täby • Ready proteins & store-brand essentials</p>
+          </div>
+          <div class="text-left sm:text-right">
+            <span class="text-xs text-nordic-600 block">Remaining Budget</span>
+            <div class="text-2xl font-bold text-nordic-sage tracking-tight" id="budgetDisplay">0 SEK</div>
+            <span class="text-xs text-nordic-600" id="checkedCountDisplay">0 of 0 items checked</span>
+          </div>
+        </div>
+        <div class="w-full bg-nordic-100 h-1.5 rounded-full mt-4 overflow-hidden">
+          <div id="progressBar" class="bg-nordic-sage h-1.5 transition-all duration-300" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Quick Add Input -->
+      <form id="addItemForm" class="flex gap-2">
+        <input type="text" id="newItemName" placeholder="Add custom item (e.g., Bananas, Sriracha)" class="flex-grow text-xs rounded border border-nordic-300 px-3 py-2 focus:outline-none focus:border-nordic-sage" required />
+        <input type="number" id="newItemPrice" placeholder="SEK" class="w-24 text-xs rounded border border-nordic-300 px-3 py-2 focus:outline-none focus:border-nordic-sage" required />
+        <button type="submit" class="bg-nordic-800 hover:bg-nordic-900 text-white text-xs px-4 py-2 rounded font-medium transition-colors">Add</button>
+      </form>
+
+      <!-- Categories Container -->
+      <div id="shoppingListContainer" class="space-y-4"></div>
+    </section>
+
+  </main>
+
+  <!-- RECIPE DETAIL MODAL -->
+  <div id="recipeModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg border border-nordic-200 max-w-lg w-full p-6 shadow-xl max-h-[92vh] overflow-y-auto space-y-4">
+      <div class="flex justify-between items-start border-b border-nordic-200 pb-3">
+        <div>
+          <span id="modalMealType" class="text-xs font-semibold uppercase tracking-wider text-nordic-sage">Lunch</span>
+          <h3 id="modalTitle" class="text-lg font-bold text-nordic-900 mt-0.5">Meal Title</h3>
+        </div>
+        <button id="closeRecipeModal" class="text-nordic-400 hover:text-nordic-900 text-2xl leading-none p-1">&times;</button>
+      </div>
+
+      <!-- Visual Verification Image -->
+      <div class="rounded-lg overflow-hidden border border-nordic-200 bg-nordic-100">
+        <img id="modalImage" src="" alt="Expected visual presentation" class="w-full h-48 object-cover" />
+        <div class="px-3 py-1.5 bg-nordic-50 border-t border-nordic-200 text-[11px] text-nordic-600 font-medium">
+          Expected Visual Presentation
+        </div>
+      </div>
+
+      <!-- Macro Badges -->
+      <div class="grid grid-cols-4 gap-2 bg-nordic-50 p-2.5 rounded border border-nordic-200 text-center">
+        <div><div class="text-[10px] uppercase font-semibold text-nordic-600">Calories</div><div id="modalCals" class="text-xs font-bold text-nordic-900">0</div></div>
+        <div><div class="text-[10px] uppercase font-semibold text-nordic-600">Protein</div><div id="modalProt" class="text-xs font-bold text-nordic-sage">0g</div></div>
+        <div><div class="text-[10px] uppercase font-semibold text-nordic-600">Carbs</div><div id="modalCarbs" class="text-xs font-bold text-nordic-900">0g</div></div>
+        <div><div class="text-[10px] uppercase font-semibold text-nordic-600">Fat</div><div id="modalFat" class="text-xs font-bold text-nordic-900">0g</div></div>
+      </div>
+
+      <!-- Ingredients -->
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-nordic-800 mb-2">Ingredients</h4>
+        <ul id="modalIngredients" class="text-xs space-y-1.5 text-nordic-700 list-disc list-inside"></ul>
+      </div>
+
+      <!-- Steps -->
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-nordic-800 mb-2">Assembly Steps</h4>
+        <ol id="modalInstructions" class="text-xs space-y-2 text-nordic-700 list-decimal list-inside"></ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- GITHUB DEPLOYMENT INSTRUCTIONS MODAL -->
+  <div id="githubModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg border border-nordic-200 max-w-md w-full p-6 shadow-xl space-y-4 text-xs text-nordic-700">
+      <div class="flex justify-between items-center border-b border-nordic-200 pb-2">
+        <h3 class="text-sm font-bold text-nordic-900">Deploy to GitHub Pages</h3>
+        <button id="closeGithubModal" class="text-nordic-400 hover:text-nordic-900 text-xl leading-none">&times;</button>
+      </div>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Create a public repository on GitHub (e.g., <code class="bg-nordic-100 px-1 py-0.5 rounded font-mono">meal-plan</code>).</li>
+        <li>Commit and push this code as <code class="bg-nordic-100 px-1 py-0.5 rounded font-mono">index.html</code> in the repository root.</li>
+        <li>Open your repository <strong>Settings &gt; Pages</strong>.</li>
+        <li>Under <strong>Source</strong>, select <code class="bg-nordic-100 px-1 py-0.5 rounded font-mono">Deploy from a branch</code>, set branch to <code class="bg-nordic-100 px-1 py-0.5 rounded font-mono">main</code> and directory to <code class="bg-nordic-100 px-1 py-0.5 rounded font-mono">/ (root)</code>.</li>
+        <li>Click <strong>Save</strong>. Your planner is live on GitHub Pages.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    // --- MEAL DATABASE (With Plating Verification Images) ---
+    const mealsData = [
+      {
+        day: "Monday",
+        meals: [
+          {
+            type: "Breakfast",
+            title: "Garlic Herb Greek Yogurt & Boiled Eggs",
+            cals: 270, prot: 27, carbs: 6, fat: 14,
+            image: "https://jernejkitchen.com/sites/default/files/styles/text_verticalbreakpoints_theme_jernejkitchenr_screen-md-max_1x/public/cilbir-eggs-02-jernejkitchen.jpg?itok=UvZKdPmK",
+            ingredients: [
+              "150g ICA Grekisk Yoghurt 0%",
+              "2 Boiled eggs (halved)",
+              "Pinch of garlic powder, salt, and smoked paprika",
+              "Squeeze of fresh lemon juice"
+            ],
+            instructions: [
+              "Spread Greek yogurt across a shallow plate or bowl.",
+              "Peel the boiled eggs, slice in half, and set them into the yogurt.",
+              "Dust with smoked paprika, sea salt, and a squeeze of fresh lemon."
+            ]
+          },
+          {
+            type: "Lunch",
+            title: "Rotisserie Thigh & Pickled Cabbage Wrap",
+            cals: 390, prot: 38, carbs: 22, fat: 12,
+            image: "https://masonfit.com/wp-content/uploads/2024/03/BBQ-rotisserie-chicken-wraps-745x1024.jpg",
+            ingredients: [
+              "120g Shredded rotisserie chicken (skinless dark thigh meat)",
+              "1 Santa Maria Fullkorn / Fiber Tortilla",
+              "1 large cup shredded Vitkål (white cabbage)",
+              "1 tbsp ICA Grekisk Yoghurt 0% mixed with black pepper"
+            ],
+            instructions: [
+              "Warm the shredded chicken for 45 seconds.",
+              "Lay out the tortilla flat.",
+              "Layer shredded chicken, crisp cabbage, and seasoned yogurt, then roll tightly."
+            ]
+          },
+          {
+            type: "Dinner",
+            title: "Smoked Ham & Crispbread Deli Plate",
+            cals: 310, prot: 32, carbs: 20, fat: 9,
+            image: "https://www.matdagboken.se/assets/media/medium/recipe/1440-Sn05BGJaN7MiUvHzffkj.jpg",
+            ingredients: [
+              "4 slices ICA Rökt Skinka (smoked ham)",
+              "150g Keso Naturell 4% (cottage cheese)",
+              "2 slices Wasa Knäckebröd (Husman or Sport)",
+              "1/2 English cucumber, sliced into rounds"
+            ],
+            instructions: [
+              "Place 2 crispbread sheets on a plate.",
+              "Spread 75g of cottage cheese across each slice.",
+              "Top with folded smoked ham slices, cucumber rounds, and black pepper."
+            ]
+          }
+        ]
+      },
+      {
+        day: "Tuesday",
+        meals: [
+          {
+            type: "Breakfast",
+            title: "Cottage Cheese & Smoked Ham Crispbreads",
+            cals: 280, prot: 29, carbs: 18, fat: 9,
+            image: "https://www.matdagboken.se/assets/media/medium/recipe/1440-Sn05BGJaN7MiUvHzffkj.jpg",
+            ingredients: [
+              "150g Keso Naturell 4%",
+              "3 slices ICA Rökt Skinka",
+              "2 slices Wasa Knäckebröd",
+              "Freshly cracked black pepper"
+            ],
+            instructions: [
+              "Spread cottage cheese generously across the crispbread.",
+              "Fold ham slices neatly on top and season with black pepper."
+            ]
+          },
+          {
+            type: "Lunch",
+            title: "Pre-Cooked BBQ Chicken & Crunchy Slaw Bowl",
+            cals: 400, prot: 42, carbs: 26, fat: 10,
+            image: "https://masonfit.com/wp-content/uploads/2024/03/BBQ-rotisserie-chicken-wraps-745x1024.jpg",
+            ingredients: [
+              "140g ICA Färdiglagad Kyckling (pre-cooked sliced BBQ/Naturell)",
+              "2 cups finely shredded Vitkål (white cabbage)",
+              "1/2 English cucumber, sliced",
+              "1 tbsp soy sauce + 1 tsp lemon juice"
+            ],
+            instructions: [
+              "Warm the chicken slices for 45-60 seconds (or leave cold).",
+              "Toss shredded cabbage and cucumber with soy sauce and lemon in a bowl.",
+              "Place chicken slices over the salad."
+            ]
+          },
+          {
+            type: "Dinner",
+            title: "Loaded Cold Chicken & Cottage Cheese Salad",
+            cals: 330, prot: 39, carbs: 10, fat: 12,
+            image: "https://masonfit.com/wp-content/uploads/2025/03/cottage-cheese-chicken-salad-683x1024.jpg",
+            ingredients: [
+              "100g Shredded rotisserie chicken thigh meat (skinless)",
+              "150g Keso Naturell 4%",
+              "Diced cucumber and crushed black pepper",
+              "Pinch of smoked paprika"
+            ],
+            instructions: [
+              "Combine cottage cheese and diced cucumber in a bowl.",
+              "Toss in the shredded rotisserie chicken.",
+              "Finish with cracked black pepper and paprika."
+            ]
+          }
+        ]
+      },
+      {
+        day: "Wednesday",
+        meals: [
+          {
+            type: "Breakfast",
+            title: "Double Boiled Egg & Crispbread Plate",
+            cals: 260, prot: 22, carbs: 18, fat: 11,
+            image: "https://www.matdagboken.se/assets/media/medium/recipe/1440-Sn05BGJaN7MiUvHzffkj.jpg",
+            ingredients: [
+              "2 Hard-boiled eggs",
+              "2 slices Wasa Knäckebröd",
+              "1 tsp Dijon mustard",
+              "Sliced cucumber"
+            ],
+            instructions: [
+              "Slice boiled eggs onto crispbread.",
+              "Add a dab of Dijon mustard, salt, and cucumber slices."
+            ]
+          },
+          {
+            type: "Lunch",
+            title: "Cold Soba & Sliced Chicken Noodle Bowl",
+            cals: 410, prot: 40, carbs: 42, fat: 8,
+            image: "https://cdn.sunbasket.com/a367862f-efb9-44c1-aaa5-943788db1f54.jpg",
+            ingredients: [
+              "120g Pre-cooked chicken slices or shredded rotisserie",
+              "1 bundle Soba noodles (cooked and chilled)",
+              "1 cup shredded cabbage and cucumber",
+              "1 tbsp soy sauce + 1/2 tsp sesame oil"
+            ],
+            instructions: [
+              "Place chilled soba noodles in a bowl.",
+              "Arrange sliced chicken and vegetables around the noodles.",
+              "Drizzle soy sauce dressing directly over the bowl."
+            ]
+          },
+          {
+            type: "Dinner",
+            title: "Folded Ham & Melted Cheese Wrap",
+            cals: 320, prot: 30, carbs: 22, fat: 10,
+            image: "https://masonfit.com/wp-content/uploads/2024/03/BBQ-rotisserie-chicken-wraps-745x1024.jpg",
+            ingredients: [
+              "1 Santa Maria Fullkorn Tortilla",
+              "4 slices ICA Rökt Skinka",
+              "25g ICA Riven Magrare Ost 12%",
+              "Shredded cabbage"
+            ],
+            instructions: [
+              "Place tortilla with cheese on a plate, warm 25 seconds until melted.",
+              "Add smoked ham and shredded cabbage, fold in half, and serve."
+            ]
+          }
+        ]
+      },
+      {
+        day: "Thursday",
+        meals: [
+          {
+            type: "Breakfast",
+            title: "Garlic Greek Yogurt & Jammy Eggs",
+            cals: 270, prot: 27, carbs: 6, fat: 14,
+            image: "https://jernejkitchen.com/sites/default/files/styles/text_verticalbreakpoints_theme_jernejkitchenr_screen-md-max_1x/public/cilbir-eggs-02-jernejkitchen.jpg?itok=UvZKdPmK",
+            ingredients: [
+              "150g ICA Grekisk Yoghurt 0%",
+              "2 Boiled eggs",
+              "Pinch of cumin, paprika, and salt",
+              "Fresh lemon juice"
+            ],
+            instructions: [
+              "Stir a pinch of cumin and lemon into Greek yogurt.",
+              "Plate the yogurt, top with halved eggs, and dust with paprika."
+            ]
+          },
+          {
+            type: "Lunch",
+            title: "Rotisserie Thigh Taco-Style Wrap",
+            cals: 390, prot: 38, carbs: 22, fat: 12,
+            image: "https://masonfit.com/wp-content/uploads/2024/03/BBQ-rotisserie-chicken-wraps-745x1024.jpg",
+            ingredients: [
+              "120g Shredded rotisserie chicken thigh meat",
+              "1 Fiber tortilla",
+              "1/2 cup shredded cabbage and cucumber",
+              "1 tbsp Greek yogurt dusted with cumin/chili"
+            ],
+            instructions: [
+              "Warm shredded chicken for 45 seconds.",
+              "Spread spiced yogurt onto the tortilla.",
+              "Top with warm chicken and shredded cabbage, then wrap tightly."
+            ]
+          },
+          {
+            type: "Dinner",
+            title: "High-Protein Keso & Ham Bowl",
+            cals: 310, prot: 34, carbs: 9, fat: 12,
+            image: "https://masonfit.com/wp-content/uploads/2025/03/cottage-cheese-chicken-salad-683x1024.jpg",
+            ingredients: [
+              "200g Keso Naturell 4%",
+              "4 slices diced ICA Rökt Skinka",
+              "Diced cucumber",
+              "Black pepper and dried oregano"
+            ],
+            instructions: [
+              "Dice ham and cucumber into cubes.",
+              "Fold into cottage cheese and finish with oregano and pepper."
+            ]
+          }
+        ]
+      },
+      {
+        day: "Friday",
+        meals: [
+          {
+            type: "Breakfast",
+            title: "Cottage Cheese & Sliced Boiled Eggs",
+            cals: 280, prot: 31, carbs: 5, fat: 14,
+            image: "https://www.matdagboken.se/assets/media/medium/recipe/1440-Sn05BGJaN7MiUvHzffkj.jpg",
+            ingredients: [
+              "150g Keso Naturell 4%",
+              "2 Boiled eggs, sliced",
+              "Black pepper and paprika"
+            ],
+            instructions: [
+              "Spoon cottage cheese into a small bowl.",
+              "Layer sliced boiled eggs on top, season with salt and pepper."
+            ]
+          },
+          {
+            type: "Lunch",
+            title: "Double Deli Ham & Rotisserie Wrap",
+            cals: 390, prot: 44, carbs: 22, fat: 9,
+            image: "https://masonfit.com/wp-content/uploads/2024/03/BBQ-rotisserie-chicken-wraps-745x1024.jpg",
+            ingredients: [
+              "80g Shredded rotisserie chicken",
+              "3 slices ICA Rökt Skinka",
+              "1 Santa Maria Fiber Tortilla",
+              "Shredded cabbage and cucumber"
+            ],
+            instructions: [
+              "Warm chicken and ham for 30 seconds.",
+              "Add to tortilla with fresh shredded cabbage and fold."
+            ]
+          },
+          {
+            type: "Dinner",
+            title: "Cleanout Savory Protein Bowl",
+            cals: 340, prot: 38, carbs: 14, fat: 12,
+            image: "https://masonfit.com/wp-content/uploads/2025/03/cottage-cheese-chicken-salad-683x1024.jpg",
+            ingredients: [
+              "Remaining rotisserie chicken shreds",
+              "Remaining Keso or Greek yogurt",
+              "1 slice Wasa crispbread crumbled over top",
+              "Diced cucumber & cabbage"
+            ],
+            instructions: [
+              "Mix remaining proteins and fresh vegetables in a large bowl.",
+              "Crumble a crispbread slice over the top for texture and crunch."
+            ]
+          }
+        ]
+      }
+    ];
+
+    const initialShoppingCategories = [
+      {
+        category: "Ready-To-Eat Proteins (No Raw Cooking)",
+        items: [
+          { id: "p1", name: "Färdiggrillad Hel Kyckling (Fresh Rotisserie)", brand: "ICA Deli counter", price: 79, checked: false },
+          { id: "p2", name: "Färdiglagad Skivad Kyckling (200g)", brand: "ICA / Guldfågeln", price: 34, checked: false },
+          { id: "p3", name: "Ägg 15-pack (Boil in kettle or pot once)", brand: "ICA Frigående", price: 38, checked: false },
+          { id: "p4", name: "Rökt Skinka (Smoked Ham, 120g)", brand: "ICA Pålägg", price: 22, checked: false }
+        ]
+      },
+      {
+        category: "Dairy & Chilled Staples",
+        items: [
+          { id: "d1", name: "Grekisk Yoghurt 0% (500g)", brand: "ICA", price: 22, checked: false },
+          { id: "d2", name: "Keso Naturell 4% (500g)", brand: "Arla / ICA", price: 24, checked: false },
+          { id: "d3", name: "Riven Magrare Ost 12% (150g)", brand: "ICA", price: 22, checked: false }
+        ]
+      },
+      {
+        category: "Ready Carbs (No Stove / Zero Porridge)",
+        items: [
+          { id: "c1", name: "Tortilla Fullkorn / Fiber (Small 8-pack)", brand: "Santa Maria / ICA", price: 18, checked: false },
+          { id: "c2", name: "Wasa Knäckebröd (Husman / Sport)", brand: "Wasa", price: 18, checked: false },
+          { id: "c3", name: "Sobanudlar (Soba Buckwheat)", brand: "ICA Asia", price: 20, checked: false }
+        ]
+      },
+      {
+        category: "High-Volume Fresh Produce",
+        items: [
+          { id: "v1", name: "Vitkål (Whole White Cabbage head)", brand: "Swedish Produce", price: 16, checked: false },
+          { id: "v2", name: "Gurka (English Cucumber, 1 pc)", brand: "ICA", price: 12, checked: false },
+          { id: "v3", name: "Citroner (Lemons, 2 pcs)", brand: "ICA", price: 12, checked: false }
+        ]
+      }
+    ];
+
+    // LocalStorage Management
+    let shoppingCategories = JSON.parse(localStorage.getItem('arninge_shopping_clean')) || initialShoppingCategories;
+
+    function saveShopping() {
+      localStorage.setItem('arninge_shopping_clean', JSON.stringify(shoppingCategories));
+      renderShoppingList();
+      updateBudget();
+    }
+
+    // Render Meals
+    function renderMeals() {
+      const container = document.getElementById('mealsGrid');
+      container.innerHTML = mealsData.map((d, dayIdx) => `
+        <div class="bg-white rounded-lg border border-nordic-200 overflow-hidden shadow-sm">
+          <div class="bg-nordic-50 px-4 py-2.5 border-b border-nordic-200 font-semibold text-xs text-nordic-800 uppercase tracking-wider flex justify-between">
+            <span>${d.day}</span>
+            <span class="text-nordic-600 font-normal">3 Daily Meals</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-nordic-200">
+            ${d.meals.map((m, mealIdx) => `
+              <div 
+                onclick="openMealModal(${dayIdx},${mealIdx})" 
+                class="p-4 hover:bg-nordic-50 cursor-pointer transition-colors flex flex-col justify-between group"
+              >
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="text-[10px] font-bold uppercase tracking-wider ${                       m.type === 'Breakfast' ? 'text-amber-700' : m.type === 'Lunch' ? 'text-nordic-sage' : 'text-blue-700'                     }">${m.type}</span>
+                    <span class="text-[11px] text-nordic-600 font-medium">${m.cals} kcal</span>
+                  </div>
+                  <h3 class="text-xs font-semibold text-nordic-900 group-hover:text-nordic-sage transition-colors leading-snug">
+                    ${m.title}
+                  </h3>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px] text-nordic-600 border-t border-nordic-100 pt-2">
+                  <span>${m.prot}g protein</span>
+                  <span class="text-nordic-sage font-medium group-hover:underline">View dish &rarr;</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Shopping List
+    function renderShoppingList() {
+      const container = document.getElementById('shoppingListContainer');
+      container.innerHTML = shoppingCategories.map((cat, catIdx) => `
+        <div class="bg-white rounded-lg border border-nordic-200 overflow-hidden shadow-sm">
+          <div class="bg-nordic-50 px-4 py-2.5 border-b border-nordic-200 text-xs font-semibold text-nordic-800 uppercase tracking-wider">
+            ${cat.category}
+          </div>
+          <div class="divide-y divide-nordic-100">
+            ${cat.items.map((item, itemIdx) => `
+              <div class="px-4 py-2.5 flex items-center justify-between hover:bg-nordic-50 transition-colors">
+                <label class="flex items-center gap-3 cursor-pointer select-none flex-grow">
+                  <input 
+                    type="checkbox" 
+                    ${item.checked ? 'checked' : ''} 
+                    onchange="toggleItem(${catIdx},${itemIdx})" 
+                    class="w-4 h-4 rounded text-nordic-sage border-nordic-300 focus:ring-0 cursor-pointer"
+                  />
+                  <div>
+                    <span class="text-xs font-medium text-nordic-900 ${item.checked ? 'line-through text-nordic-300' : ''}">
+                      ${item.name}
+                    </span>
+                    <span class="text-[10px] text-nordic-600 block ${item.checked ? 'line-through text-nordic-300' : ''}">
+                      ${item.brand}
+                    </span>
+                  </div>
+                </label>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-semibold text-nordic-800 ${item.checked ? 'line-through text-nordic-300' : ''}">
+                    ${item.price} SEK
+                  </span>
+                  <button 
+                    onclick="deleteItem(${catIdx},${itemIdx})" 
+                    class="text-nordic-300 hover:text-red-500 text-sm p-1 leading-none transition-colors"
+                  >&times;</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleItem(catIdx, itemIdx) {
+      shoppingCategories[catIdx].items[itemIdx].checked = !shoppingCategories[catIdx].items[itemIdx].checked;
+      saveShopping();
+    }
+
+    function deleteItem(catIdx, itemIdx) {
+      shoppingCategories[catIdx].items.splice(itemIdx, 1);
+      saveShopping();
+    }
+
+    function updateBudget() {
+      let remaining = 0;
+      let checkedCount = 0;
+      let totalCount = 0;
+
+      shoppingCategories.forEach(cat => {
+        cat.items.forEach(item => {
+          totalCount++;
+          if (item.checked) {
+            checkedCount++;
+          } else {
+            remaining += Number(item.price);
+          }
+        });
+      });
+
+      document.getElementById('budgetDisplay').innerText = `${remaining} SEK`;
+      document.getElementById('checkedCountDisplay').innerText = `${checkedCount} of ${totalCount} items acquired`;
+      const pct = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+    }
+
+    // Add Custom Item
+    document.getElementById('addItemForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('newItemName').value.trim();
+      const price = Number(document.getElementById('newItemPrice').value);
+      if (!name) return;
+
+      if (!shoppingCategories[0]) {
+        shoppingCategories.push({ category: "Custom Additions", items: [] });
+      }
+      shoppingCategories[0].items.unshift({
+        id: "custom_" + Date.now(),
+        name: name,
+        brand: "Custom Addition",
+        price: price || 0,
+        checked: false
+      });
+
+      document.getElementById('newItemName').value = '';
+      document.getElementById('newItemPrice').value = '';
+      saveShopping();
+    });
+
+    // Recipe Modal Controller
+    function openMealModal(dayIdx, mealIdx) {
+      const meal = mealsData[dayIdx].meals[mealIdx];
+      document.getElementById('modalMealType').innerText = `${mealsData[dayIdx].day} • ${meal.type}`;
+      document.getElementById('modalTitle').innerText = meal.title;
+      document.getElementById('modalImage').src = meal.image;
+      document.getElementById('modalCals').innerText = meal.cals;
+      document.getElementById('modalProt').innerText = `${meal.prot}g`;
+      document.getElementById('modalCarbs').innerText = `${meal.carbs}g`;
+      document.getElementById('modalFat').innerText = `${meal.fat}g`;
+
+      const ingList = document.getElementById('modalIngredients');
+      ingList.innerHTML = meal.ingredients.map(i => `<li>${i}</li>`).join('');
+
+      const instList = document.getElementById('modalInstructions');
+      instList.innerHTML = meal.instructions.map(i => `<li>${i}</li>`).join('');
+
+      document.getElementById('recipeModal').classList.remove('hidden');
+    }
+
+    document.getElementById('closeRecipeModal').addEventListener('click', () => {
+      document.getElementById('recipeModal').classList.add('hidden');
+    });
+
+    // Navigation Tabs
+    const tabBtnMeals = document.getElementById('tabBtnMeals');
+    const tabBtnShop = document.getElementById('tabBtnShop');
+    const viewMeals = document.getElementById('viewMeals');
+    const viewShop = document.getElementById('viewShop');
+
+    tabBtnMeals.addEventListener('click', () => {
+      tabBtnMeals.className = 'py-3 tab-active transition-colors';
+      tabBtnShop.className = 'py-3 tab-inactive transition-colors';
+      viewMeals.classList.remove('hidden');
+      viewShop.classList.add('hidden');
+    });
+
+    tabBtnShop.addEventListener('click', () => {
+      tabBtnShop.className = 'py-3 tab-active transition-colors';
+      tabBtnMeals.className = 'py-3 tab-inactive transition-colors';
+      viewShop.classList.remove('hidden');
+      viewMeals.classList.add('hidden');
+    });
+
+    // GitHub Modal
+    const githubModal = document.getElementById('githubModal');
+    document.getElementById('openGithubModal').addEventListener('click', () => {
+      githubModal.classList.remove('hidden');
+    });
+    document.getElementById('closeGithubModal').addEventListener('click', () => {
+      githubModal.classList.add('hidden');
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('recipeModal')) {
+        document.getElementById('recipeModal').classList.add('hidden');
+      }
+      if (e.target === githubModal) {
+        githubModal.classList.add('hidden');
+      }
+    });
+
+    // Initialize App
+    renderMeals();
+    renderShoppingList();
+    updateBudget();
+  </script>
+</body>
+</html>
